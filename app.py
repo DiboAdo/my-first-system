@@ -35,8 +35,8 @@ def add_book():
         return jsonify({"error": "title and author are required"}), 400
     conn = get_db()
     cur = conn.execute(
-        "INSERT INTO books (Title, Author) VALUES (?, ?)",
-        (data["title"], data["author"]),
+        "INSERT INTO books (Title, Author, Available) VALUES (?, ?, ?)",
+        (data["title"], data["author"], 1),
     )
     conn.commit()
     new_id = cur.lastrowid
