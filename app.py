@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -18,6 +18,30 @@ def list_books():
     rows = conn.execute("SELECT * FROM books").fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
+
+@app.route("/books/<int:book_id>")
+def get_book(book_id):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM books WHERE ID = ?", (book_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return jsonify({"error": "Book not found"}), 404
+    return jsonify(dict(row))
+
+@app.route("/books", methods=["POST"])
+def add_book():
+    data = request.get_json()
+    if not data or "title" not in data or "author" not in data:
+        return jsonify({"error": "title and author are required"}), 400
+    conn = get_db()
+    cur = conn.execute(
+        "INSERT INTO books (Title, Author) VALUES (?, ?)",
+        (data["title"], data["author"]),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return jsonify({"ID": new_id, "Title": data["title"], "Author": data["author"]}), 201
 
 if __name__ == "__main__":
     app.run(debug=True)
