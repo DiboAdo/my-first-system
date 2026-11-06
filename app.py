@@ -42,6 +42,36 @@ def add_book():
     new_id = cur.lastrowid
     conn.close()
     return jsonify({"ID": new_id, "Title": data["title"], "Author": data["author"]}), 201
-
+@app.route("/books/<int:book_id>", methods=["PUT"])
+def update_book(book_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "JSON body required"}), 400
+    conn = get_db()
+    row = conn.execute("SELECT * FROM books WHERE ID = ?", (book_id,)).fetchone()
+    if row is None:
+        conn.close()
+        return jsonify({"error": "Book not found"}), 404
+    title = data.get("title", row["Title"])
+    author = data.get("author", row["Author"])
+    available = data.get("available", row["Available"])
+    conn.execute(
+        "UPDATE books SET Title = ?, Author = ?, Available = ? WHERE ID = ?",
+        (title, author, available, book_id),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"ID": book_id, "Title": title, "Author": author, "Available": available})
+@app.route("/books/<int:book_id>", methods=["DELETE"])
+def delete_book(book_id):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM books WHERE ID = ?", (book_id,)).fetchone()
+    if row is None:
+        conn.close()
+        return jsonify({"error": "Book not found"}), 404
+    conn.execute("DELETE FROM books WHERE ID = ?", (book_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Book deleted"})
 if __name__ == "__main__":
     app.run(debug=True)
